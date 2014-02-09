@@ -139,6 +139,11 @@ public:
 };
 
 
+/// MOEntity is one of the most important objects. It is associated with a mesh and can be moved and rotated around the scene.
+/// It can have physics, so it can collide with other objects.
+/// An entity can be anything from a character, an item, a weapon, a room.
+/// MOEntity is derived from MObject3d.
+/// MOEntity uses MPhysicsProperties and MPhysicsConstraint which are defined in the MOEntity source code itself.
 class M_ENGINE_EXPORT MOEntity : public MObject3d
 {
 public:
@@ -173,8 +178,10 @@ private:
 public:
 
 	// type
+	/// See MObject3d#getType.
 	int getType(void){ return M_OBJECT3D_ENTITY; }
 
+	/// See MObject3d#Active.
 	void setActive(bool active);
 	
 	// invisible
