@@ -115,6 +115,8 @@ void MGuiEditText::sendVariable(void)
 				value->set(getText());
 			}
 			break;
+
+        default: break;
 		}
 
 		unsigned int tSize = m_text.size();
@@ -189,7 +191,7 @@ void MGuiEditText::updateFromVariable(void)
 
 void MGuiEditText::setText(const char * text)
 {
-	m_text = text;
+    m_text = text;
 
 	if(m_limitLength && m_text.size() > m_maxLength)
 	{
@@ -202,7 +204,7 @@ void MGuiEditText::setText(const char * text)
 	if(getCharId() > tSize)
 		setCharId(tSize);
 
-	autoScaleFromText();
+    autoScaleFromText();
 }
 
 void MGuiEditText::setPressed(bool pressed)

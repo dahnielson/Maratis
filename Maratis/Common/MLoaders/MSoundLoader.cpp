@@ -32,10 +32,14 @@
 #include <MCore.h>
 #include "MSoundLoader.h"
 #include "MVorbisLoader.h"
+#include "MWAVLoader.h"
 
 bool M_loadSound(const char * filename, void * data)
 {
 	if (M_loadVorbisSound(filename, data))
 		return true;
+    else if(M_loadWAVSound(filename, data))
+        return true;
+
 	return false;
 }

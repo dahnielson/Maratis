@@ -28,7 +28,12 @@
 //========================================================================
 
 
+#ifndef ANDROID
 #include <MWindow.h>
+#else
+#include "MAndroidWindow.h"
+#endif
+
 #include "MWinContext.h"
 
 
@@ -44,7 +49,7 @@ void MWinContext::getScreenSize(unsigned int * width, unsigned int * height)
 void MWinContext::setCursorPosition(int x, int y)
 {
 	MWindow * window = MWindow::getInstance();
-	window->setCursorPos(window->getXPosition() + x, window->getYPosition() + y);
+    window->setCursorPos(x, y);
 }
 
 void MWinContext::hideCursor(void)

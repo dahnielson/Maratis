@@ -174,6 +174,7 @@ void gameWinEvents(MWinEvent * windowEvents)
 		}
 		break;
 
+    case MWIN_EVENT_JOYSTICK_ADDED:
 	case MWIN_EVENT_CONTROLLER_ADDED:
 		{
 			for (int i = 0; i < 4; ++i)
@@ -187,6 +188,7 @@ void gameWinEvents(MWinEvent * windowEvents)
 		}
 		break;
 
+    case MWIN_EVENT_JOYSTICK_REMOVED:
 	case MWIN_EVENT_CONTROLLER_REMOVED:
 		{
 			for (int i = 0; i < 4; ++i)
@@ -198,8 +200,9 @@ void gameWinEvents(MWinEvent * windowEvents)
 				}
 			}
 		}
-		break;
+		break;       
 
+    case MWIN_EVENT_JOYSTICK_MOVE:
 	case MWIN_EVENT_CONTROLLER_MOVE:
 		{
 			int joy = -1;
@@ -220,32 +223,33 @@ void gameWinEvents(MWinEvent * windowEvents)
 			{
 				case MCONTROLLER_AXIS_LEFTX:
 					sprintf(name, "JOY%d_AXIS_LEFTX", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 				case MCONTROLLER_AXIS_LEFTY:
 					sprintf(name, "JOY%d_AXIS_LEFTY", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 				case MCONTROLLER_AXIS_RIGHTX:
 					sprintf(name, "JOY%d_AXIS_RIGHTX", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 				case MCONTROLLER_AXIS_RIGHTY:
 					sprintf(name, "JOY%d_AXIS_RIGHTY", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 				case MCONTROLLER_AXIS_TRIGGERLEFT:
 					sprintf(name, "JOY%d_AXIS_TRIGGERLEFT", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 				case MCONTROLLER_AXIS_TRIGGERRIGHT:
 					sprintf(name, "JOY%d_AXIS_TRIGGERRIGHT", joy+1);
-					input->setAxis(name, windowEvents->data[2] / SHRT_MAX);
+                    input->setAxis(name, (float) windowEvents->data[2] / SHRT_MAX);
 					break;
 			}
 		}
 		break;
 
+    case MWIN_EVENT_JOYSTICK_BUTTON_DOWN:
 	case MWIN_EVENT_CONTROLLER_BUTTON_DOWN:
 		{
 			int joy = -1;
@@ -309,25 +313,26 @@ void gameWinEvents(MWinEvent * windowEvents)
 					input->downKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADUP:
-					sprintf(name, "JOY%d_BUTTON_DAPDUP", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADUP", joy+1);
 					input->downKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADDOWN:
-					sprintf(name, "JOY%d_BUTTON_DAPDDOWN", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADDOWN", joy+1);
 					input->downKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADLEFT:
-					sprintf(name, "JOY%d_BUTTON_DAPDLEFT", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADLEFT", joy+1);
 					input->downKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADRIGHT:
-					sprintf(name, "JOY%d_BUTTON_DAPDRIGHT", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADRIGHT", joy+1);
 					input->downKey(name);
 					break;
 			}
 		}
 		break;
 
+    case MWIN_EVENT_JOYSTICK_BUTTON_UP:
 	case MWIN_EVENT_CONTROLLER_BUTTON_UP:
 		{
 			int joy = -1;
@@ -391,19 +396,19 @@ void gameWinEvents(MWinEvent * windowEvents)
 					input->upKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADUP:
-					sprintf(name, "JOY%d_BUTTON_DAPDUP", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADUP", joy+1);
 					input->upKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADDOWN:
-					sprintf(name, "JOY%d_BUTTON_DAPDDOWN", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADDOWN", joy+1);
 					input->upKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADLEFT:
-					sprintf(name, "JOY%d_BUTTON_DAPDLEFT", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADLEFT", joy+1);
 					input->upKey(name);
 					break;
 				case MCONTROLLER_BUTTON_DPADRIGHT:
-					sprintf(name, "JOY%d_BUTTON_DAPDRIGHT", joy+1);
+                    sprintf(name, "JOY%d_BUTTON_DPADRIGHT", joy+1);
 					input->upKey(name);
 					break;
 			}

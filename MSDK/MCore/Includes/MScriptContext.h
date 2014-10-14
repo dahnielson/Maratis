@@ -43,7 +43,8 @@ public :
 	/// \param filename	Script filename
 	virtual void runScript(const char * filename) = 0;
 
-	/// Start call function.
+    /// Start call function. All arguments to the function have to be pushed
+    /// between MScriptContext::startCallFunction and MScriptContext::endCallFunction
 	/// \param name		Function name
 	virtual bool startCallFunction(const char * name) = 0;
 	
@@ -70,11 +71,11 @@ public :
 	virtual float getFloat(unsigned int arg) = 0;
 	virtual void * getPointer(unsigned int arg) = 0;
 
-	virtual void pushIntArray(const int * values, unsigned int valuesNumber) = 0;
+    virtual void pushIntArray(const int * values, unsigned int valuesNumber) = 0;
 	virtual void pushFloatArray(const float * values, unsigned int valuesNumber) = 0;
 	virtual void pushString(const char * string) = 0;
 	virtual void pushBoolean(bool value) = 0;
-	virtual void pushInteger(int value) = 0;
+    virtual void pushInteger(int value) = 0;
 	virtual void pushFloat(float value) = 0;
 	virtual void pushPointer(void * value) = 0;
 };

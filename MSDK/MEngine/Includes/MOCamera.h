@@ -31,13 +31,13 @@
 #ifndef _M_OCAMERA_H
 #define _M_OCAMERA_H
 
-
 class M_ENGINE_EXPORT MOCamera : public MObject3d
 {
 private:
 
 	// properties
 	bool m_fog;
+    MVector3 m_fogColor;
 	bool m_ortho;
 	float m_fov;
 	float m_fogDistance;
@@ -61,6 +61,8 @@ private:
 	// render to texture
 	MTextureRef * m_renderColorTexture;
 	MTextureRef * m_renderDepthTexture;
+
+    MSkybox m_skybox;
 	
 public:
 
@@ -80,6 +82,8 @@ public:
 
 	// properties
 	inline void enableFog(const bool fog){ m_fog = fog; }
+    inline MVector3 getFogColor() { return m_fogColor; }
+    inline void setFogColor(MVector3 color) { m_fogColor = color; }
 	inline void enableOrtho(const bool ortho){ m_ortho = ortho; }
 	inline void setFov(const float fov){ m_fov = fov; }
 	inline void setFogDistance(const float fogDistance){ m_fogDistance = fogDistance; }
@@ -118,6 +122,10 @@ public:
 	inline MTextureRef * getRenderColorTexture(void){ return m_renderColorTexture; }
 	inline MTextureRef * getRenderDepthTexture(void){ return m_renderDepthTexture; }
 	
+    inline void drawSkybox() { m_skybox.drawSkybox(getTransformedPosition(), getTransformedRotation()); }
+    inline void loadSkybox(const char* path) { m_skybox.loadSkyboxTextures(path); }
+    inline MSkybox * getSkybox() { return &m_skybox; }
+
 	// listener
 	void updateListener(void);
 

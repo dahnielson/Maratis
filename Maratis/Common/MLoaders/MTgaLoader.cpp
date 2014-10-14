@@ -30,6 +30,7 @@
 //========================================================================
 
 #include <MCore.h>
+#include <MEngine.h>
 #include "MTgaLoader.h"
 
 static void flipImage(MImage * source)
@@ -79,14 +80,15 @@ bool M_loadTgaImage(const char * filename, void * data)
 	MFile* file = M_fopen(filename, "rb");
 	if (!file)
 	{
-		fprintf(stderr, "ERROR Load TGA : unable to open %s\n", filename);
+        //fprintf(stderr, "ERROR Load TGA : unable to open %s\n", filename);
 		return false;
 	}
 
 	Header header;
 	if (M_fread(&header, sizeof(Header), 1, file) == 0)
 	{
-		fprintf(stderr, "ERROR Load TGA : could not read header\n", filename);
+        MLOG_ERROR("Load TGA: Could not read header from \"" << filename << "\"");
+        //fprintf(stderr, "ERROR Load TGA : could not read header from '%s'\n", filename);
 		return false;
 	}
 
@@ -151,29 +153,48 @@ bool M_loadTgaImage(const char * filename, void * data)
 		unsigned char chunk_header;
 		unsigned char* chunk_data = new unsigned char[128];
 		unsigned int offset = 0;
+        char* color_buf = new char[components];
 
 		do
-		{
+		{            
 			M_fread(&chunk_header, sizeof(unsigned char), 1, file);
 			if (chunk_header < 128)
 			{
-				chunk_header++;
-				M_fread(chunk_data, sizeof(unsigned char), chunk_header * components, file);
-				memcpy(image_data + offset, chunk_data, chunk_header * components);
-				offset += chunk_header * components;
+                chunk_header++;
+                /*M_fread(chunk_data, sizeof(unsigned char), chunk_header * components, file);
+                memcpy(&image_data[offset], chunk_data, chunk_header * components);*/
+
+                for(int i = 0; i < chunk_header; i++)
+                {
+                    M_fread(color_buf, 1, components, file);
+
+                    image_data[offset] = color_buf[0];
+                    image_data[offset + 1] = color_buf[1];
+                    image_data[offset + 2] = color_buf[2];
+
+                    if(components == 4)
+                        image_data[offset + 3] = color_buf[3];
+
+                    offset += components;
+                }
+
+                //offset += chunk_header * components;
 			}
 			else
 			{
 				chunk_header -= 127;
 				M_fread(chunk_data, sizeof(unsigned char), components, file);
-				for (int i = 0; i < chunk_header; i++)
+
+                for (int i = 0; i < chunk_header; i++)
 				{
-					memcpy(image_data + offset, chunk_data, components);
+                    memcpy(&image_data[offset], chunk_data, components);
 					offset += components;
 				}
 			}
 		}
 		while (offset < size);
+
+        delete color_buf;
 	}
 	else
 	{

@@ -33,6 +33,7 @@
 #include "vorbis/vorbisfile.h"
 
 #include <MCore.h>
+#include <MEngine.h>
 #include "MVorbisLoader.h"
 
 size_t M_VorbisRead(void *dest, size_t size, size_t count, void *file)
@@ -55,6 +56,10 @@ long M_VorbisTell(void *file)
 	return M_ftell((MFile*)file);
 }
 
+#ifndef __func__
+#define __func__ __FUNCTION__
+#endif
+
 bool M_loadVorbisSound(const char * filename, void * data)
 {
 	if((!data) || (!filename))
@@ -63,7 +68,7 @@ bool M_loadVorbisSound(const char * filename, void * data)
 	MFile* file = M_fopen(filename, "rb");
 	if (!file)
 	{
-		fprintf(stderr, "ERROR Load Vorbis : unable to open %s\n", filename);
+        MLOG_ERROR("Load Vorbis : unable to open \"" << filename << "\"");
 		return false;
 	}
 
@@ -77,7 +82,7 @@ bool M_loadVorbisSound(const char * filename, void * data)
 
 	if(ov_open_callbacks(file, &vf, NULL, 0, io) < 0)
 	{
-		fprintf(stderr,"ERROR Load Vorbis : input does not appear to be an ogg vorbis bitstream\n");
+        MLOG_ERROR("Load Vorbis : input does not appear to be an ogg vorbis bitstream");
 		return false;
 	}
 
@@ -94,7 +99,7 @@ bool M_loadVorbisSound(const char * filename, void * data)
 			format = M_SOUND_FORMAT_STEREO16;
 			break;
 		default:
-			fprintf(stderr, "ERROR Load Vorbis : unsupported format\n");
+            MLOG_ERROR("Load Vorbis : unsupported format");
 			return false;
 	}
 
@@ -104,18 +109,22 @@ bool M_loadVorbisSound(const char * filename, void * data)
 	int current_section;
 	char pcmout[4096];
 	unsigned int offset = 0;
+    int ret = 0;
 
-	while(true)
+    // TODO: Proper error handling!
+    while(offset < size)
 	{
-		if (ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1, &current_section) == 0)
+        if ((ret = ov_read(&vf, pcmout, sizeof(pcmout), 0, 2, 1, &current_section)) == 0)
 			break;
+        else if(ret < 0)
+            MLOG_ERROR("Error in sound file!");
 
-		memcpy((char*)sound->getData() + offset, pcmout, sizeof(pcmout));
-		offset += sizeof(pcmout);
-	}
+        memcpy((char*)sound->getData() + offset, pcmout, ret);
+        offset += ret;
+    }
 
-	ov_clear(&vf);
-	M_fclose(file);
+    ov_clear(&vf);
+    //M_fclose(file);
 
 	return true;
 }

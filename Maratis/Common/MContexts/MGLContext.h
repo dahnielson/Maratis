@@ -30,12 +30,11 @@
 //========================================================================
 
 
-#ifndef _M_GL_CONTEXT_H
+#if !defined(_M_GL_CONTEXT_H) && !defined(USE_GLES)
 #define _M_GL_CONTEXT_H
 
 #include <MCore.h>
 #define MAX_MRCLIGHTS 8
-
 
 class MGLContext : public MRenderingContext
 {
@@ -119,7 +118,7 @@ public:
 	void createVertexShader(unsigned int * shaderId);
 	void createPixelShader(unsigned int * shaderId);
 	void deleteShader(unsigned int * shaderId);
-	void sendShaderSource(unsigned int shaderId, const char * source);
+    bool sendShaderSource(unsigned int shaderId, const char * source);
 
 	// FX
 	void bindFX(unsigned int fxId);
@@ -194,6 +193,8 @@ public:
 	void enableDepthTest(void);
 	void disableDepthTest(void);
 	void setDepthMode(M_DEPTH_MODES mode);
+	void enablePolygonOffset(float x, float y);
+	void disablePolygonOffset();
 
 	// stencil
 	void enableStencilTest(void);
@@ -261,6 +262,9 @@ public:
 	void enableBlending(void);
 	void disableBlending(void);
 	void setBlendingMode(M_BLENDING_MODES mode);
+
+    // point size
+    void setPointSize(float size);
 };
 
 #endif

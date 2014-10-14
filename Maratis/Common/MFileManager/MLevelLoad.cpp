@@ -178,17 +178,28 @@ void readSceneProperties(TiXmlElement * node, MScene * scene)
 	}
 
 	// gravity
-	MVector3 gravity;
-	if(readFloatValues(node, "gravity", gravity, 3))
-		scene->setGravity(gravity);
+    MVector3 vector;
+    if(readFloatValues(node, "gravity", vector, 3))
+        scene->setGravity(vector);
+
+    if(readFloatValues(node, "ambientLight", vector, 3))
+        scene->setAmbientLight(vector);
 }
 
 void readEntityProperties(TiXmlElement * node, MOEntity * entity)
 {
 	// invisible
-	bool invisible;
-	if(readBool(node, "invisible", &invisible))
-		entity->setInvisible(invisible);
+	bool value;
+	if(readBool(node, "invisible", &value))
+		entity->setInvisible(value);
+
+	// shadow
+	if (readBool(node, "shadow", &value))
+		entity->enableShadow(value);
+
+    // occluder
+    if(readBool(node, "occluder", &value))
+        entity->enableOccluder(value);
 }
 
 void readSoundProperties(TiXmlElement * node, MOSound * sound)
@@ -263,6 +274,11 @@ void readCameraProperties(TiXmlElement * node, MOCamera * camera)
 	if(readFloatValues(node, "clearColor", clearColor, 3))
 		camera->setClearColor(clearColor);
 
+    // fog color
+    MVector3 fogColor;
+    if(readFloatValues(node, "fogColor", fogColor, 3))
+        camera->setFogColor(fogColor);
+
 	// ortho
 	bool ortho;
 	if(readBool(node, "ortho", &ortho))
@@ -292,6 +308,11 @@ void readCameraProperties(TiXmlElement * node, MOCamera * camera)
 	float fogDistance;
 	if(node->QueryFloatAttribute("fogDistance", &fogDistance) == TIXML_SUCCESS)
 		camera->setFogDistance(fogDistance);
+
+    // skyboxTextures
+    const char* skyboxTextures;
+    if((skyboxTextures = node->Attribute("skyboxTextures")) != NULL && strlen(skyboxTextures) > 0)
+        camera->loadSkybox(skyboxTextures);
 }
 
 void readLightProperties(TiXmlElement * node, MOLight * light)
@@ -400,7 +421,16 @@ void readBehaviorProperties(TiXmlElement * node, MBehavior * behavior)
 
 		switch(variable.getType())
 		{
-		case M_VARIABLE_BOOL:
+        case M_VARIABLE_STRING:
+            {
+                const char * str = node->Attribute(name);
+                if(str)
+                    ((MString*)variable.getPointer())->set(str);
+
+                size = behavior->getVariablesNumber();
+            }
+            break;
+        case M_VARIABLE_BOOL:
 			readBool(node, name, (bool*)variable.getPointer());
 			break;
 		case M_VARIABLE_INT:
@@ -409,13 +439,6 @@ void readBehaviorProperties(TiXmlElement * node, MBehavior * behavior)
 			break;
 		case M_VARIABLE_FLOAT:
 			node->QueryFloatAttribute(name, (float*)variable.getPointer());
-			break;
-		case M_VARIABLE_STRING:
-			{
-				const char * str = node->Attribute(name);
-				if(str)
-					((MString*)variable.getPointer())->set(str);
-			}
 			break;
 		case M_VARIABLE_VEC2:
 			readFloatValues(node, name, *((MVector2*)variable.getPointer()), 2);
@@ -814,6 +837,26 @@ bool M_loadLevel(const char * filename, void * data, const bool clearData)
 			readBehaviors(textNode, text);
 		}
 
+        // entity
+        TiXmlElement * groupNode = sceneNode->FirstChildElement("Group");
+        for(groupNode; groupNode; groupNode=groupNode->NextSiblingElement("Group"))
+        {
+            // name
+            const char * objectName = groupNode->Attribute("name");
+
+            // create entity
+            MObject3d * object = scene->addNewGroup();
+            object->setName(objectName);
+
+            // active
+            readObjectActive(groupNode, object);
+
+            // transform
+            TiXmlElement * transformNode = groupNode->FirstChildElement("transform");
+            if(transformNode)
+                readObjectTransform(transformNode, object);
+        }
+
 		// links
 		unsigned int l;
 		unsigned int lSize = g_links.size();
@@ -824,9 +867,9 @@ bool M_loadLevel(const char * filename, void * data, const bool clearData)
 			if(parent)
 				link->object->linkTo(parent);
 		}
-	}
+    }
 
-	// add default scene
+    // add default scene
 	if(level->getScenesNumber() == 0)
 		level->addNewScene();
 

@@ -108,6 +108,7 @@ class MMaterialsAnimRef;
 #include "MMaterialsAnim.h"
 
 #include "MFXManager.h"
+#include "MPostProcessor.h"
 
 #include "MVariable.h"
 #include "MBehavior.h"
@@ -136,6 +137,7 @@ class MMaterialsAnimRef;
 #include "MArmatureAnimRef.h"
 #include "MTexturesAnimRef.h"
 #include "MMaterialsAnimRef.h"
+#include "MSkybox.h"
 
 #include "MObject3d.h"
 #include "MOBone.h"

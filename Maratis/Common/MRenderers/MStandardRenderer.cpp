@@ -27,10 +27,20 @@
 //
 //========================================================================
 
+#ifndef USE_GLES
+#include <glew.h>
+#endif
 
 #include <MEngine.h>
 #include <MLog.h>
+
+#ifndef USE_GLES
 #include "MStandardShaders.h"
+#include "MCompatibleShaders.h"
+#else
+#include "MGLESShaders.h"
+#endif
+
 #include "MStandardRenderer.h"
 
 
@@ -50,7 +60,39 @@ m_tangents(NULL),
 m_FXsNumber(0)
 {
 	MRenderingContext * render = MEngine::getInstance()->getRenderingContext();
+	MLOG_INFO("Renderer: " << render->getRendererVersion());
 
+#ifndef USE_GLES
+    float version;
+    sscanf(render->getRendererVersion(), "%3f", &version);
+    if(version < 4.0)
+    {
+        MLOG_INFO("No GL4 compatible context found. Falling back to compat shaders.");
+        // compat FXs
+        addFX(compat_vertShader0.c_str(), compat_fragShader0.c_str());
+        addFX(compat_vertShader1.c_str(), compat_fragShader1.c_str());
+        addFX(compat_vertShader2.c_str(), compat_fragShader2.c_str());
+        addFX(compat_vertShader3.c_str(), compat_fragShader3.c_str());
+        addFX(compat_vertShader4.c_str(), compat_fragShader4.c_str());
+        addFX(compat_vertShader5.c_str(), compat_fragShader5.c_str());
+        addFX(compat_vertShader6.c_str(), compat_fragShader6.c_str());
+        addFX(compat_vertShader7.c_str(), compat_fragShader7.c_str());
+        addFX(compat_vertShader8.c_str(), compat_fragShader8.c_str());
+    }
+    else
+    {
+        // default FXs
+        addFX(vertShader0.c_str(), fragShader0.c_str());
+        addFX(vertShader1.c_str(), fragShader1.c_str());
+        addFX(vertShader2.c_str(), fragShader2.c_str());
+        addFX(vertShader3.c_str(), fragShader3.c_str());
+        addFX(vertShader4.c_str(), fragShader4.c_str());
+        addFX(vertShader5.c_str(), fragShader5.c_str());
+        addFX(vertShader6.c_str(), fragShader6.c_str());
+        addFX(vertShader7.c_str(), fragShader7.c_str());
+        addFX(vertShader8.c_str(), fragShader8.c_str());
+    }
+#else
 	// default FXs
 	addFX(vertShader0.c_str(), fragShader0.c_str());
 	addFX(vertShader1.c_str(), fragShader1.c_str());
@@ -61,14 +103,14 @@ m_FXsNumber(0)
 	addFX(vertShader6.c_str(), fragShader6.c_str());
 	addFX(vertShader7.c_str(), fragShader7.c_str());
 	addFX(vertShader8.c_str(), fragShader8.c_str());
-
+#endif
 	// rand texture
 	MImage image;
 	image.create(M_UBYTE, 64, 64, 4);
 	unsigned char * pixel = (unsigned char *)image.getData();
 	for(unsigned int i=0; i<image.getSize(); i++)
 	{
-		(*pixel) = (unsigned char)(rand()%256);
+        (*pixel) = (unsigned char)(rand()%256);
 		pixel++;
 	}
 
@@ -345,7 +387,7 @@ void MStandardRenderer::drawDisplay(MSubMesh * subMesh, MDisplay * display, MVec
 		M_CULL_MODES cullMode = display->getCullMode();
 		MVector3 diffuse = material->getDiffuse();
 		MVector3 specular = material->getSpecular();
-		MVector3 emit = material->getEmit();
+        MVector3 emit = material->getEmit() + engine->getLevel()->getCurrentScene()->getAmbientLight();
 		float shininess = material->getShininess();
 
 		// get current fog color
@@ -787,11 +829,11 @@ void MStandardRenderer::drawOpaques(MSubMesh * subMesh, MArmature * armature)
 	MVector3 * tangents = subMesh->getTangents();
 	MColor * colors = subMesh->getColors();
 
-	if(! vertices)
+	if (!vertices)
 		return;
 
 	MSkinData * skinData = subMesh->getSkinData();
-	if(armature && skinData)
+	if (armature && skinData)
 	{
 		unsigned int verticesSize = subMesh->getVerticesSize();
 		unsigned int normalsSize = subMesh->getNormalsSize();
@@ -811,16 +853,16 @@ void MStandardRenderer::drawOpaques(MSubMesh * subMesh, MArmature * armature)
 
 	unsigned int i;
 	unsigned int displayNumber = subMesh->getDisplaysNumber();
-	for(i=0; i<displayNumber; i++)
+	for (i = 0; i<displayNumber; i++)
 	{
 		MDisplay * display = subMesh->getDisplay(i);
-		if(! display->isVisible())
+		if (!display->isVisible())
 			continue;
 
 		MMaterial * material = display->getMaterial();
-		if(material)
+		if (material)
 		{
-			if(material->getBlendMode() == M_BLENDING_NONE)
+			if (material->getBlendMode() == M_BLENDING_NONE)
 				drawDisplay(subMesh, display, vertices, normals, tangents, colors);
 		}
 	}
@@ -950,6 +992,58 @@ void MStandardRenderer::updateVisibility(MScene * scene, MOCamera * camera)
 		if(object->isActive())
 			object->updateVisibility(camera);
 	}
+
+    oSize = scene->getEntitiesNumber();
+    MVector3 min, max, occluderPosition;
+    MVector3 cameraPos = camera->getTransformedPosition();
+    MVector3 box[8];
+    MVector3 objMin, objMax;
+    bool intersection = false;
+
+    for(i=0; i < oSize; i++)
+    {
+        MOEntity* occluder = scene->getEntityByIndex(i);
+
+        if(!occluder->isOccluder())
+            continue;
+
+        occluderPosition = occluder->getTransformedPosition();
+        min = *occluder->getMatrix()*occluder->getBoundingBox()->min;
+        max = *occluder->getMatrix()*occluder->getBoundingBox()->max;
+
+        for(int j = 0; j < oSize; j++)
+        {
+            MOEntity* object = scene->getEntityByIndex(j);
+            if(object->isOccluder() || object->isInvisible())
+                continue;
+
+            objMin = object->getBoundingBox()->min;
+            objMax = object->getBoundingBox()->max;
+
+            box[0] = *object->getMatrix()*objMin;
+            box[1] = *object->getMatrix()*MVector3(objMax.x, objMin.y, objMin.z);
+            box[2] = *object->getMatrix()*MVector3(objMin.x, objMin.y, objMax.z);
+            box[3] = *object->getMatrix()*MVector3(objMax.x, objMin.y, objMax.z);
+
+            box[4] = *object->getMatrix()*objMax;
+            box[5] = *object->getMatrix()*MVector3(objMin.x, objMax.y, objMax.z);
+            box[6] = *object->getMatrix()*MVector3(objMin.x, objMax.y, objMin.z);
+            box[7] = *object->getMatrix()*MVector3(objMax.x, objMax.y, objMin.z);
+
+            intersection = true;
+            for(int p = 0; p < 8; p++)
+            {
+                if(isEdgeToBoxCollision(cameraPos, box[p], min, max) == false)
+                {
+                    intersection = false;
+                    break;
+                }
+            }
+
+
+            object->setVisible(!intersection);
+        }
+    }
 }
 
 void MStandardRenderer::enableFog(MOCamera * camera)
@@ -968,7 +1062,7 @@ void MStandardRenderer::enableFog(MOCamera * camera)
 		render->disableFog();
 	}
 
-	render->setFogColor(camera->getClearColor());
+    render->setFogColor(camera->getFogColor());
 	render->setFogDistance(fogMin, camera->getClippingFar());
 }
 
@@ -1317,11 +1411,15 @@ void MStandardRenderer::prepareSubMesh(MScene * scene, MOCamera * camera, MOEnti
 		MEntityLight * entityLight = &m_entityLights[m_entityLightsList[l]];
 		MOLight * light = entityLight->light;
 
-		// attenuation
-		float quadraticAttenuation = (8.0f / light->getRadius());
-		quadraticAttenuation = (quadraticAttenuation*quadraticAttenuation)*light->getIntensity();
+        float quadraticAttenuation = 0.0;
+		// attenuation	
+        if(light->getSpotAngle() > 0.0f)
+        {
+            quadraticAttenuation = (8.0f / light->getRadius());
+            quadraticAttenuation = (quadraticAttenuation*quadraticAttenuation)*light->getIntensity();
+        }
 
-		// color
+        // color
 		MVector3 color = light->getFinalColor();
 
 		// set light
@@ -1334,11 +1432,13 @@ void MStandardRenderer::prepareSubMesh(MScene * scene, MOCamera * camera, MOEnti
 
 		// spot
 		render->setLightSpotAngle(l, light->getSpotAngle());
-		if(light->getSpotAngle() < 90){
+        if(light->getSpotAngle() < 90)
+        {
 			render->setLightSpotDirection(l, light->getRotatedVector(MVector3(0, 0, -1)).getNormalized());
 			render->setLightSpotExponent(l, light->getSpotExponent());
 		}
-		else {
+        else
+        {
 			render->setLightSpotExponent(l, 0.0f);
 		}
 
@@ -1350,14 +1450,16 @@ void MStandardRenderer::prepareSubMesh(MScene * scene, MOCamera * camera, MOEnti
 			m_lightShadowBias[l] = light->getShadowBias()*shadowLight->biasUnity;
 			m_lightShadowBlur[l] = light->getShadowBlur();
 			m_lightShadowTexture[l] = (int)shadowLight->shadowTexture;
-			m_lightShadowMatrix[l] = shadowLight->shadowMatrix * (*entity->getMatrix());
+            m_lightShadowMatrix[l] = shadowLight->shadowMatrix * (*entity->getMatrix());
 		}
-		else{
+        else
+        {
 			m_lightShadow[l] = 0;
 		}
 	}
 
-	for(l=lightsNumber; l<4; l++){
+    for(l=lightsNumber; l<4; l++)
+    {
 		render->setLightDiffuse(l, MVector4(0, 0, 0, 0));
 		render->disableLight(l);
 		m_lightShadow[l] = 0;
@@ -1381,29 +1483,27 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 	unsigned int currentFrameBuffer = 0;
 	render->getCurrentFrameBuffer(&currentFrameBuffer);
 
-	// init
+        // init
 	render->setAlphaTest(0);
 	render->disableVertexArray();
 	render->disableTexCoordArray();
 	render->disableNormalArray();
 	render->disableColorArray();
-
-
+        
 	// destroy unused shadowLights
 	destroyUnusedShadowLights();
 
 	// decrease shadowLights score
 	decreaseShadowLights();
-
-
+       
 	// lights
 	unsigned int l;
 	unsigned int lSize = scene->getLightsNumber();
-
-
+        
 	// make frustum
 	camera->getFrustum()->makeVolume(camera);
-
+        
+#ifndef EMSCRIPTEN
 	// compute lights visibility
 	for(l=0; l<lSize; l++)
 	{
@@ -1411,8 +1511,7 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 		if(light->isActive())
 			light->updateVisibility(camera);
 	}
-
-
+	
 	// create frame buffer (TODO: only if minimum one shadow light)
 	if(m_fboId == 0)
 	{
@@ -1421,7 +1520,7 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 		render->setDrawingBuffers(NULL, 0);
 		render->bindFrameBuffer(currentFrameBuffer);
 	}
-
+	
 	render->disableLighting();
 	render->disableBlending();
 	m_forceNoFX = true;
@@ -1455,11 +1554,21 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 			*lightCamera.getMatrix() = *light->getMatrix();
 			lightCamera.setClippingNear(light->getRadius()*0.001f);
 			lightCamera.setClippingFar(light->getRadius());
-			lightCamera.setFov(light->getSpotAngle()*2.0f);
 
+            MVector3 cameraAxis = lightCamera.getRotatedVector(MVector3(0, 0, -1)).getNormalized();
+
+            if(light->getSpotAngle() == 0)
+            {
+                lightCamera.enableOrtho(true);
+                lightCamera.setFov(light->getRadius()*0.01f);
+            }
+            else
+            {
+                lightCamera.enableOrtho(false);
+                lightCamera.setFov(light->getSpotAngle()*2.0f);
+            }
 
 			MVector3 cameraPos = lightCamera.getTransformedPosition();
-			MVector3 cameraAxis = lightCamera.getRotatedVector(MVector3(0, 0, -1)).getNormalized();
 
 			render->disableScissorTest();
 			render->enableDepthTest();
@@ -1477,7 +1586,7 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 			for(i=0; i<eSize; i++)
 			{
 				MOEntity * entity = scene->getEntityByIndex(i);
-				if(entity->isActive())
+                if(entity->isActive() && entity->hasShadow())
 				{
 					if(entity->isInvisible()){
 						entity->setVisible(false);
@@ -1513,6 +1622,10 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 						}
 					}
 				}
+                else if(!entity->hasShadow())
+                {
+                    entity->setVisible(false);
+                }
 			}
 
 			// sort Zlist and set clipping
@@ -1522,8 +1635,9 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 
 			m_currentCamera = &lightCamera;
 
-			render->clear(M_BUFFER_DEPTH);
+            render->clear(M_BUFFER_DEPTH);
 			render->setColorMask(0, 0, 0, 0);
+			render->enablePolygonOffset(1.0, 4096.0);
 
 			// entities
 			for(i=0; i<eSize; i++)
@@ -1595,7 +1709,7 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 						m_currModelViewMatrix = (*lightCamera.getCurrentViewMatrix()) * (*entity->getMatrix());
 
 						// draw opaques
-						drawOpaques(subMesh, mesh->getArmature());
+                        drawOpaques(subMesh, mesh->getArmature());
 
 						//render->popMatrix();
 					}
@@ -1605,6 +1719,7 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 				}
 			}
 
+			render->disablePolygonOffset();
 			setShadowMatrix(&shadowLight->shadowMatrix, &lightCamera);
 
 			// biasUnity
@@ -1639,14 +1754,22 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 
 		render->clear(M_BUFFER_DEPTH);
 	}
+#endif
 
+    render->disableDepthTest();
+    render->disableCullFace();
+    render->enableScissorTest();
 
+    camera->drawSkybox();
+    render->enableDepthTest();
+    render->disableScissorTest();
+    
 	// update visibility
-	updateVisibility(scene, camera); // TODO: don't need to test light vis again
+        updateVisibility(scene, camera);
 
 	// get camera frustum
 	MFrustum * frustum = camera->getFrustum();
-
+        
 	// fog
 	enableFog(camera);
 
@@ -1665,13 +1788,6 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 	// entities
 	unsigned int i;
 	unsigned int eSize = scene->getEntitiesNumber();
-
-
-
-
-
-
-
 
 	// make opaque and transp list
 	for(i=0; i<eSize; i++)
@@ -1821,15 +1937,12 @@ void MStandardRenderer::drawScene(MScene * scene, MOCamera * camera)
 		}
 	}
 
-
-
-
 	// draw opaques
 	{
 		if(opaqueNumber > 1)
 			sortFloatList(m_opaqueSortList, m_opaqueSortZList, 0, (int)opaqueNumber-1);
 
-		// Z pre-pass
+        // Z pre-pass
 		render->setDepthMode(M_DEPTH_LEQUAL);
 		render->setColorMask(0, 0, 0, 0);
 

@@ -38,8 +38,8 @@ OPTION(ALSOFT_BACKEND_QSA     "Check for QSA backend"                 OFF)
 OPTION(ALSOFT_BACKEND_MMDEVAPI "Check for MMDevApi backend"           OFF)
 OPTION(ALSOFT_BACKEND_DSOUND   "Check for DirectSound backend"        ON) ## Used on Windows
 OPTION(ALSOFT_BACKEND_WINMM    "Check for Windows Multimedia backend" OFF)
-OPTION(ALSOFT_BACKEND_PORTAUDIO  "Check for PortAudio backend"        OFF)
-OPTION(ALSOFT_BACKEND_PULSEAUDIO "Check for PulseAudio backend"       OFF)
+OPTION(ALSOFT_BACKEND_PORTAUDIO  "Check for PortAudio backend"        ON)
+OPTION(ALSOFT_BACKEND_PULSEAUDIO "Check for PulseAudio backend"       ON) ## Used on Ubuntu Linux
 OPTION(ALSOFT_BACKEND_COREAUDIO  "Check for CoreAudio backend"        ON) ## Used on OSX/iOS
 OPTION(ALSOFT_BACKEND_OPENSL     "Check for OpenSL backend"           ON) ## Used on Android etc.
 OPTION(ALSOFT_BACKEND_WAVE "Enable Wave Writer backend"               OFF)
@@ -142,7 +142,7 @@ IF(CMAKE_COMPILER_IS_GNUCC)
     CHECK_C_SOURCE_COMPILES("extern inline int foo() { return 0; }
                              int main() {return foo();}" INLINE_IS_C99)
     IF(NOT INLINE_IS_C99)
-        MESSAGE(FATAL_ERROR "Your compiler does not seem to have C99 inline semantics!
+        MESSAGE(WARNING "Your compiler does not seem to have C99 inline semantics!
                              Please update your compiler for better C99 compliance.")
     ENDIF()
 

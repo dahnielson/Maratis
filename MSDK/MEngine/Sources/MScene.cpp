@@ -55,6 +55,26 @@ MScene::~MScene()
 	m_sounds.clear();
 }
 
+MObject3d * MScene::addNewGroup(void)
+{
+    MObject3d * object = new MObject3d();
+    m_objects.push_back(object);
+    return object;
+}
+
+MObject3d * MScene::addNewGroup(const MObject3d & object)
+{
+    MObject3d * group = new MObject3d();
+    m_objects.push_back(group);
+
+    group->setPosition(object.getTransformedPosition());
+    group->setRotation(object.getRotation());
+    group->setScale(object.getTransformedScale());
+    group->updateMatrix();
+
+    return group;
+}
+
 MOCamera * MScene::addNewCamera(void)
 {
 	MOCamera * newCamera = new MOCamera();
@@ -868,6 +888,9 @@ void MScene::draw(MOCamera * camera)
 {
 	MEngine * engine = MEngine::getInstance();
 	MRenderer * renderer = engine->getRenderer();
+
 	if(renderer)
+    {
 		renderer->drawScene(this, camera);
+    }
 }

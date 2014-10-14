@@ -93,9 +93,6 @@ void MGame::update(void)
 
 	// flush input
 	engine->getInputContext()->flush();
-
-	// update postponed requests
-	engine->updateRequests();
 }
 
 void MGame::draw(void)
@@ -193,7 +190,7 @@ void MGame::draw(void)
 		MOCamera * camera = scene->getCurrentCamera();
 
 		// draw current scene
-		if(! camera->getRenderColorTexture())
+        if(!camera->getRenderColorTexture() && (!m_postEffectsEnabled || !m_postProcessor.draw(camera)))
 		{
 			render->setClearColor(camera->getClearColor());
 			render->clear(M_BUFFER_COLOR | M_BUFFER_DEPTH);
@@ -203,7 +200,8 @@ void MGame::draw(void)
 			scene->draw(camera);
 			scene->drawObjectsBehaviors();
 		}
-		
+
+
 		// draw scene layer
 		unsigned int sceneLayerId = camera->getSceneLayer();
 		if(sceneLayerId > 0 && sceneLayerId <= level->getScenesNumber())
@@ -238,6 +236,16 @@ void MGame::onBeginScene(void)
 
 	// begin scene
 	scene->begin();
+
+    m_postProcessor.eraseTextures();
+    m_postProcessor.updateResolution();
+
+    if(m_postProcessor.getFX() == 0 && hasPostEffects() &&
+            strlen(m_postProcessor.getFragmentShader()) > 0 &&
+            strlen(m_postProcessor.getVertexShader()) > 0)
+    {
+        m_postProcessor.loadShaderFile(m_postProcessor.getVertexShader(), m_postProcessor.getFragmentShader());
+    }
 }
 
 void MGame::onEndScene(void)
@@ -257,4 +265,5 @@ void MGame::onEndScene(void)
 
 	// end scene
 	scene->end();
+    m_postProcessor.clear();
 }
